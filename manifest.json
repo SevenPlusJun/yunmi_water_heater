@@ -1,0 +1,10 @@
+{
+  "domain": "yunmi_water_heater",
+  "name": "yunmi_water_heater",
+  "documentation": "https://example.com/",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": [
+    "@seven"
+  ]
+}
