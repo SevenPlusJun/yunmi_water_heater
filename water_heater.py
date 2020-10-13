@@ -1,5 +1,5 @@
 '''
-v1.0
+v1.1
 by seven
 '''
 import os, time
@@ -218,7 +218,7 @@ class YunmiWaterHeaterController(object):
             res_list = json.loads(json_str)
             self._refresh_token = res_list['mobBaseRes']['result']['token']
             self._usercode = res_list['mobBaseRes']['result']['userBaseInfo']['userCode']
-            self._userId = str(res_list['mobBaseRes']['result']['userXiaomiInfo']['userId'])
+            self._userId = str(res_list['mobBaseRes']['result']['userViomiInfo']['userId'])
             tk_arr = self.yunmi_get_access_token(self._refresh_token, self._client_id)
             if tk_arr:
                 self._access_token = tk_arr['access_token']
