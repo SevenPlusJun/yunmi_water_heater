@@ -1,5 +1,5 @@
 '''
-v1.1
+v1.2
 by seven
 '''
 import os, time
@@ -67,8 +67,8 @@ STATE_APPOINTMENT = '预约'
 STATE_QUICKBATH = '速热洗浴'
 STATE_DAILYTEMPERATURE = '日常水温'
 STATE_UNAVALIABLE = '不可用'
-STATE_OFF = '关机'
-STATE_ON = '开机'
+STATE_OFF = 'off'
+STATE_ON = 'on'
 
 HA_STATE_TO_YUNMI = {STATE_APPOINTMENT: 2, STATE_QUICKBATH: 1, STATE_DAILYTEMPERATURE: 0, STATE_OFF: -1 }
 YUNMI_STATE_TO_HA = {v: k for k, v in HA_STATE_TO_YUNMI.items() if k != ""}
@@ -124,7 +124,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     password = config.get('password')
     client_id = config.get('client_id')
 
-    _LOGGER.error('============= yunmi water heater setup -> name: %s =============', name)
+    #_LOGGER.error('============= yunmi water heater setup -> name: %s =============', name)
     yunmi_wh = YunmiWaterHeater(hass, name, phone_number, password, client_id)
     async_add_entities([yunmi_wh], update_before_add=True)
 
@@ -142,7 +142,7 @@ class YunmiWaterHeaterController(object):
         self._isonline = None
         
         
-        _LOGGER.error('============= YunmiWaterHeaterController setup -> phone_number: %s =============', phone_number)
+       # _LOGGER.error('============= YunmiWaterHeaterController setup -> phone_number: %s =============', phone_number)
 
 
         try:
@@ -152,7 +152,7 @@ class YunmiWaterHeaterController(object):
                 self._refresh_token = token_arr['refresh_token']
                 self._user_id = token_arr['user_id']
                 self._member_id = token_arr['member_id']
-                _LOGGER.error('============= YunmiWaterHeaterController setup -> _access_token: %s =============', self._access_token)
+       #         _LOGGER.error('============= YunmiWaterHeaterController setup -> _access_token: %s =============', self._access_token)
         except:
             self._access_token = None
             self._refresh_token = None
@@ -207,18 +207,20 @@ class YunmiWaterHeaterController(object):
             }
 
     def yunmi_login(self):
-        url = 'https://ms.viomi.com.cn//user-web/services/login/withPwd?account='+self._phone_number+'&pwd='+hashlib.md5(str(self._password).encode('utf-8')).hexdigest().upper()
+        url = 'https://ms.viomi.com.cn/user-web/services/login/withPwd?account='+self._phone_number+'&pwd='+hashlib.md5(str(self._password).encode('utf-8')).hexdigest().upper()
         headers = { 'Accept':'application/json',
                     'Accept-Encoding':'br, gzip, deflate',
                     'User-Agent':'WaterPurifier/2.1.6 (iPhone; iOS 12.2; Scale/3.00)'
                     }
         try:
+            _LOGGER.info('216：'+ url)
             res = requests.get(url, headers=headers)
             json_str = res.content.decode(encoding='utf-8')
+            _LOGGER.info('220：'+ json_str)
             res_list = json.loads(json_str)
             self._refresh_token = res_list['mobBaseRes']['result']['token']
             self._usercode = res_list['mobBaseRes']['result']['userBaseInfo']['userCode']
-            self._userId = str(res_list['mobBaseRes']['result']['userViomiInfo']['userId'])
+            self._user_id = str(res_list['mobBaseRes']['result']['userViomiInfo']['userId'])
             tk_arr = self.yunmi_get_access_token(self._refresh_token, self._client_id)
             if tk_arr:
                 self._access_token = tk_arr['access_token']
@@ -253,8 +255,10 @@ class YunmiWaterHeaterController(object):
                     'User-Agent':'WaterPurifier/2.1.6 (iPhone; iOS 12.2; Scale/3.00)'
                     }  
         try:
+            _LOGGER.info('258：'+ url)
             res = requests.get(url, headers=headers)
             json_str = res.content.decode(encoding='utf-8')
+            _LOGGER.info('260：'+ json_str)
             res_list = json.loads(json_str)
             if res_list['code'] == 0:
                 self._detail['washStatus'] = res_list['result'][0]
@@ -269,7 +273,7 @@ class YunmiWaterHeaterController(object):
                 self._detail['appointEnd'] = res_list['result'][9]
             return True
         except Exception as e:
-            _LOGGER.error('get detail failed:'+e)
+            _LOGGER.error('get detail failed:'+e.__context__)
             self._detail['washStatus'] = -99
             self._detail['velocity'] = -99
             self._detail['waterTemp'] = -99
@@ -289,15 +293,18 @@ class YunmiWaterHeaterController(object):
                     'User-Agent':'WaterPurifier/2.1.6 (iPhone; iOS 12.2; Scale/3.00)'
                     }  
         try:
+            _LOGGER.info('296：'+ url)
             res = requests.get(url, headers=headers)
             json_str = res.content.decode(encoding='utf-8')
+            _LOGGER.info('298：'+ json_str)
             res_list = json.loads(json_str)
+            _LOGGER.info('301：'+ res_list['result']['list'][0]['did'])
             if res_list['message'] == 'ok':
                 self._did = res_list['result']['list'][0]['did']
                 self._isonline = res_list['result']['list'][0]['isOnline']
                 return True
         except Exception as e:
-            _LOGGER.error('get deviceid failed:'+e)
+            _LOGGER.error('get deviceid failed:'+e.__context__)
             self._did = 0
             self._isonline =  'error'
             return False
@@ -315,7 +322,7 @@ class YunmiWaterHeaterController(object):
             if res_list['message'] == 'ok':
                 return True
         except Exception as e:
-            _LOGGER.error('yunmi_set_temperature failed:'+e)
+            _LOGGER.error('yunmi_set_temperature failed:'+e.__context__)
             return False
 
     def yunmi_set_appoint(self,appointstart ,appointend):   
@@ -330,7 +337,7 @@ class YunmiWaterHeaterController(object):
             if res_list['message'] == 'ok':
                 return True
         except Exception as e:
-            _LOGGER.error('yunmi_set_appoint failed:'+e)
+            _LOGGER.error('yunmi_set_appoint failed:'+e.__context__)
             return False
 
     def yunmi_set_mode(self, modetype):   
@@ -345,7 +352,7 @@ class YunmiWaterHeaterController(object):
             if res_list['message'] == 'ok':
                 return True
         except Exception as e:
-            _LOGGER.error('yunmi_set_mode failed:'+e)
+            _LOGGER.error('yunmi_set_mode failed:'+e.__context__)
             return False
 
     def yunmi_set_poweron(self):
@@ -361,7 +368,7 @@ class YunmiWaterHeaterController(object):
             if res_list['message'] == 'ok':
                 return True
         except Exception as e:
-            _LOGGER.error('yunmi_set_poweron failed:'+e)
+            _LOGGER.error('yunmi_set_poweron failed:'+e.__context__)
             return False
 
     def yunmi_set_poweroff(self):
@@ -377,12 +384,12 @@ class YunmiWaterHeaterController(object):
             if res_list['message'] == 'ok':
                 return True
         except Exception as e:
-            _LOGGER.error('yunmi_set_poweroff failed:'+e)
+            _LOGGER.error('yunmi_set_poweroff failed:'+e.__context__)
             return False
     
     async def update(self):
         '''scan interval default to be 30s'''
-        _LOGGER.error("Updating the sensor...")
+        #_LOGGER.error("Updating the sensor...")
         try:
             if self._access_token_exp_time is not None and int(round(time.time() * 1000)) >= self._access_token_exp_time:
                 self.yunmi_login()
@@ -531,6 +538,23 @@ class YunmiWaterHeater(WaterHeaterDevice):
         """Return the unit of measurement."""
         return TEMP_CELSIUS
         
+    @property
+    def device_state_attributes(self):
+        if self._controller._detail is not None:
+            return {
+                'washStatus': self._controller._detail['washStatus'],
+                'velocity': self._controller._detail['velocity'],
+                'waterTemp': self._controller._detail['waterTemp'],
+                'targetTemp': self._controller._detail['targetTemp'],
+                'errStatus': self._controller._detail['errStatus'],
+                'hotWater': self._controller._detail['hotWater'],
+                'needClean': self._controller._detail['needClean'],
+                'modeType': self._controller._detail['modeType'],
+                'appointStart': self._controller._detail['appointStart'],
+                'appointEnd': self._controller._detail['appointEnd'],
+                #'update_time': self._update_time,
+                ATTR_ATTRIBUTION: ATTRIBUTION
+            }
 
     @property
     def supported_features(self):
